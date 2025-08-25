@@ -12,8 +12,8 @@ export async function GET(req: NextRequest) {
       ...(q
         ? {
             OR: [
-              { name: { contains: q, mode: 'insensitive' } },
-              { note: { contains: q, mode: 'insensitive' } },
+              { name: { contains: q } },
+              { note: { contains: q } },
             ],
           }
         : {}),
