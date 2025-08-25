@@ -17,7 +17,7 @@ model Tournament {
   endDate       DateTime
   isActive      Boolean   @default(false)
   note          String?
-  customNotice  String?   @db.Text
+  customNotice  String?
   priceOverride Int?
   lastUsedAt    DateTime?
   useCount      Int       @default(0)
@@ -42,9 +42,9 @@ model Request {
   videoTierId     String
   tournament      Tournament @relation(fields: [tournamentId], references: [id])
   tournamentId    String
-  status          RequestStatus @default(PENDING)
+  status          String @default("PENDING")
   receiptNumber   String    @unique
-  note            String?   @db.Text
+  note            String?
   totalAmount     Int
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -58,8 +58,8 @@ model RequestItem {
   category    String
   round       String
   opponent    String
-  note        String?  @db.Text
-  otherInfo   String?  @db.Text
+  note        String?
+  otherInfo   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -97,9 +97,4 @@ model VideoTier {
   requests    Request[]
 }
 
-enum RequestStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  CANCELLED
-}
+
