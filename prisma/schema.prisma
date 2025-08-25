@@ -67,7 +67,7 @@ model RequestItem {
   opponent    String
   note        String?
   otherInfo   String?
-  editOption  EditOption? @relation(fields: [editOptionId], references: [id])
+  editOption  EditOption? @relation("ItemEditOption", fields: [editOptionId], references: [id])
   editOptionId String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -88,6 +88,7 @@ model EditOption {
   price       Int
   description String?
   requests    Request[]
+  requestItems RequestItem[] @relation("ItemEditOption")
 }
 
 model HolderOption {
