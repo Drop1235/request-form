@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import RequestForm from './request-form';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export default async function RequestPage() {
   const [masters, tournaments] = await Promise.all([
