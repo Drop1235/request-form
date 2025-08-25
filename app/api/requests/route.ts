@@ -15,7 +15,7 @@ const ItemSchema = z.object({
 
 const RequestInputSchema = z.object({
   tournamentId: z.string().uuid(),
-  email: z.string().email(),
+  email: z.string().email().optional(),
   customerName: z.string().min(1),
   playerName: z.string().min(1),
   phone: z.string().min(1),
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     const created = await prisma.$transaction(async (tx) => {
       const reqSaved = await tx.request.create({
         data: {
-          email: input.email,
+          email: input.email ?? '-',
           customerName: input.customerName,
           playerName: input.playerName,
           phone: input.phone,

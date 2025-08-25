@@ -30,6 +30,7 @@ export default function RequestForm(props: Props) {
   const [holderOptionId, setHolderOptionId] = useState(holderOptions[0]?.id);
 
   // Basic contact fields
+  // メールは使わない
   const [email, setEmail] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [playerName, setPlayerName] = useState("");
@@ -51,6 +52,24 @@ export default function RequestForm(props: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ receiptNumber: string; total: number } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // カテゴリの候補（仮）
+  const categoryOptions = [
+    '12歳以下男子シングルス',
+    '12歳以下女子シングルス',
+    '14歳以下男子シングルス',
+    '14歳以下女子シングルス',
+    '16歳以下男子シングルス',
+    '16歳以下女子シングルス',
+    '18歳以下男子シングルス',
+    '18歳以下女子シングルス',
+  ];
+
+  // items.length に合わせて videoTierId を自動同期（API互換のため）
+  useEffect(() => {
+    const tier = videoTiers.find(v => v.name === String(items.length));
+    if (tier && tier.id !== videoTierId) setVideoTierId(tier.id);
+  }, [items.length, videoTiers, videoTierId]);
 
   // Search tournaments
   useEffect(() => {
@@ -107,7 +126,7 @@ export default function RequestForm(props: Props) {
     // simple validation
     const nextErrors: Record<string, string> = {};
     if (!selectedTournament) nextErrors.tournament = '大会を選んでください';
-    if (!email) nextErrors.email = 'メールを入力してください';
+    // email は任意
     if (!customerName) nextErrors.customerName = '購入者名を入力してください';
     if (!playerName) nextErrors.playerName = '選手名を入力してください';
     if (!phone) nextErrors.phone = '電話番号を入力してください';
@@ -185,40 +204,18 @@ export default function RequestForm(props: Props) {
           )}
 
           {/* Options Section */}
-          <div className="rounded-xl border bg-white p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium">動画本数 <span className="text-red-600">*</span></label>
-              <select className="mt-1 w-full rounded border px-3 py-2" value={videoTierId} onChange={e=>setVideoTierId(e.target.value)}>
-                {videoTiers.map(v=> <option key={v.id} value={v.id}>{v.name}</option>)}
-              </select>
+          {/* 規約同意（先頭） */}
+          <div className="space-y-2 rounded-xl border bg-white p-4">
+            <div className="text-sm">
+              利用規約をご確認の上、同意いただける場合はチェックを入れてください。{' '}
+              <a className="text-blue-600 underline" href="https://sites.google.com/view/tempnachi20220723/zentori-terms_junior" target="_blank" rel="noreferrer">利用規約</a>
             </div>
-            <div>
-              <label className="block text-sm font-medium">編集オプション <span className="text-red-600">*</span></label>
-              <select className="mt-1 w-full rounded border px-3 py-2" value={editOptionId} onChange={e=>setEditOptionId(e.target.value)}>
-                {editOptions.map(v=> <option key={v.id} value={v.id}>{v.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium">納品方法 <span className="text-red-600">*</span></label>
-              <select className="mt-1 w-full rounded border px-3 py-2" value={deliveryMethodId} onChange={e=>setDeliveryMethodId(e.target.value)}>
-                {deliveryMethods.map(v=> <option key={v.id} value={v.id}>{v.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium">ホルダー <span className="text-red-600">*</span></label>
-              <select className="mt-1 w-full rounded border px-3 py-2" value={holderOptionId} onChange={e=>setHolderOptionId(e.target.value)}>
-                {holderOptions.map(v=> <option key={v.id} value={v.id}>{v.name}</option>)}
-              </select>
-            </div>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={agree} onChange={e=>setAgree(e.target.checked)} /> 同意します <span className="text-red-600">*</span></label>
+            {errors.agree && <div className="text-xs text-red-600">{errors.agree}</div>}
           </div>
 
-          {/* Contact Section */}
+          {/* Contact Section （メールは非表示）*/}
           <div className="rounded-xl border bg-white p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium">メール <span className="text-red-600">*</span></label>
-              <input className="mt-1 w-full rounded border px-3 py-2" value={email} onChange={e=>setEmail(e.target.value)} placeholder="例）example@mail.com" />
-              {errors.email && <div className="mt-1 text-xs text-red-600">{errors.email}</div>}
-            </div>
             <div>
               <label className="block text-sm font-medium">購入者 <span className="text-red-600">*</span></label>
               <input className="mt-1 w-full rounded border px-3 py-2" value={customerName} onChange={e=>setCustomerName(e.target.value)} placeholder="お名前" />
@@ -252,32 +249,101 @@ export default function RequestForm(props: Props) {
             )}
           </div>
 
-          {/* Items up to 6 */}
-          <div className="space-y-3 rounded-xl border bg-white p-4">
-            <div className="font-semibold">明細（最大6件）</div>
+          {/* 1本目〜の設問（繰り返し） */}
+          <div className="space-y-4 rounded-xl border bg-white p-4">
+            <div className="font-semibold">動画の情報（最大6本）</div>
             {items.map((it, i) => (
-              <div key={i} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-start">
-                <input placeholder="カテゴリ" className="rounded border px-2 py-1" value={it.category} onChange={e=>updateItem(i,{category:e.target.value})} />
-                <input placeholder="ラウンド" className="rounded border px-2 py-1" value={it.round} onChange={e=>updateItem(i,{round:e.target.value})} />
-                <input placeholder="相手" className="rounded border px-2 py-1" value={it.opponent} onChange={e=>updateItem(i,{opponent:e.target.value})} />
-                <input placeholder="編集メモ" className="rounded border px-2 py-1" value={it.note||""} onChange={e=>updateItem(i,{note:e.target.value})} />
-                <div className="flex gap-2">
-                  <input placeholder="その他" className="flex-1 rounded border px-2 py-1" value={it.otherInfo||""} onChange={e=>updateItem(i,{otherInfo:e.target.value})} />
-                  {items.length>1 && (
-                    <button type="button" onClick={()=>removeItem(i)} className="rounded bg-red-100 px-2 text-red-700">削除</button>
-                  )}
+              <div key={i} className="space-y-2 rounded border p-3">
+                <div className="text-sm font-medium">{i+1}本目</div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  {/* カテゴリ（ラジオ） */}
+                  <div>
+                    <div className="text-sm">カテゴリ <span className="text-red-600">*</span></div>
+                    <div className="mt-1 grid grid-cols-1 gap-1">
+                      {categoryOptions.map(opt => (
+                        <label key={opt} className="flex items-center gap-2 text-sm">
+                          <input type="radio" name={`cat-${i}`} checked={it.category===opt} onChange={()=>updateItem(i,{category:opt})} /> {opt}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm">ラウンド <span className="text-red-600">*</span></label>
+                    <input className="mt-1 w-full rounded border px-2 py-1" value={it.round} onChange={e=>updateItem(i,{round:e.target.value})} placeholder="例）1R, SF, Aブロック" />
+                  </div>
+                  <div>
+                    <label className="block text-sm">対戦相手 <span className="text-red-600">*</span></label>
+                    <input className="mt-1 w-full rounded border px-2 py-1" value={it.opponent} onChange={e=>updateItem(i,{opponent:e.target.value})} />
+                  </div>
                 </div>
+
+                {/* 編集オプション（ラジオ） */}
+                <div className="mt-2">
+                  <div className="text-sm">オプション：動画編集サービスを利用しますか？ <span className="text-red-600">*</span></div>
+                  <div className="mt-1 grid grid-cols-1 gap-1">
+                    {editOptions.map(opt => {
+                      const setType = selectedTournament?.setType ?? 'ONE_SET';
+                      const priceBySet = (name: string) => {
+                        const p1: Record<string, number> = { '不要': 0, 'スコア': 3300, 'カット': 3300, '両方': 4950 };
+                        const p3: Record<string, number> = { '不要': 0, 'スコア': 4400, 'カット': 4400, '両方': 5500 };
+                        return (setType==='ONE_SET'?p1:p3)[name] ?? opt.price;
+                      };
+                      const label = `${opt.name} ${priceBySet(opt.name).toLocaleString()}円`;
+                      return (
+                        <label key={opt.id} className="flex items-center gap-2 text-sm">
+                          <input type="radio" name={`edit-${i}`} checked={editOptionId===opt.id} onChange={()=>setEditOptionId(opt.id)} /> {label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {items.length>1 && (
+                  <div className="text-right">
+                    <button type="button" onClick={()=>removeItem(i)} className="rounded bg-red-100 px-2 text-red-700">この本を削除</button>
+                  </div>
+                )}
               </div>
             ))}
+
+            {/* 追加質問 */}
             {items.length < 6 && (
-              <button type="button" onClick={addItem} className="rounded bg-gray-100 px-3 py-1">+ 明細を追加</button>
+              <div className="space-y-2">
+                <div className="text-sm">他にも購入する動画はありますか？</div>
+                <div className="flex gap-4 text-sm">
+                  <label className="flex items-center gap-2"><input type="radio" name="moreVideos" onChange={addItem} /> はい</label>
+                  <label className="flex items-center gap-2"><input type="radio" name="moreVideos" onChange={()=>{ /* いいえ → 何もしない */ }} /> いいえ</label>
+                </div>
+              </div>
             )}
           </div>
 
-          <div className="space-y-2 rounded-xl border bg-white p-4">
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={agree} onChange={e=>setAgree(e.target.checked)} /> 規約に同意します <span className="text-red-600">*</span></label>
-            {errors.agree && <div className="text-xs text-red-600">{errors.agree}</div>}
-            <textarea placeholder="メモ" className="w-full rounded border px-3 py-2" value={memo} onChange={e=>setMemo(e.target.value)} />
+          {/* 最後の設問群：納品・ホルダー・その他要望 */}
+          <div className="space-y-4 rounded-xl border bg-white p-4">
+            <div>
+              <div className="text-sm font-medium">納品方法 <span className="text-red-600">*</span></div>
+              <div className="mt-1 grid grid-cols-1 gap-1 text-sm">
+                {deliveryMethods.map(dm => (
+                  <label key={dm.id} className="flex items-center gap-2">
+                    <input type="radio" name="delivery" checked={deliveryMethodId===dm.id} onChange={()=>setDeliveryMethodId(dm.id)} /> {dm.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-medium">MicroSDカードホルダー <span className="text-red-600">*</span></div>
+              <div className="mt-1 grid grid-cols-1 gap-1 text-sm">
+                {holderOptions.map(ho => (
+                  <label key={ho.id} className="flex items-center gap-2">
+                    <input type="radio" name="holder" checked={holderOptionId===ho.id} onChange={()=>setHolderOptionId(ho.id)} /> {ho.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-medium">その他要望（自由記述）</div>
+              <textarea placeholder="ご要望など" className="mt-1 w-full rounded border px-3 py-2" value={memo} onChange={e=>setMemo(e.target.value)} />
+            </div>
           </div>
 
           <div>
