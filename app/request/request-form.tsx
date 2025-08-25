@@ -50,6 +50,7 @@ export default function RequestForm(props: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ receiptNumber: string; total: number } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [moreVideos, setMoreVideos] = useState<'yes'|'no'|undefined>(undefined);
 
   // Ensure defaults are set when masters are available
   useEffect(() => {
@@ -165,6 +166,13 @@ export default function RequestForm(props: Props) {
     if (!playerName) nextErrors.playerName = '選手名を入力してください';
     if (!phone) nextErrors.phone = '電話番号を入力してください';
     if (!agree) nextErrors.agree = '規約に同意してください';
+    // per-item edit option required
+    items.forEach((it, idx) => {
+      if (!it.editOptionId) nextErrors[`editOption-${idx}`] = '編集オプションを選択してください';
+    });
+    // more videos required and must be 'no' before proceeding
+    if (items.length < 6 && !moreVideos) nextErrors.moreVideos = 'はい/いいえを選択してください';
+    if (items.length < 6 && moreVideos !== 'no') nextErrors.moreVideos = '「いいえ」を選択してください';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
     if (!selectedTournament || !breakdown) return;
@@ -196,6 +204,8 @@ export default function RequestForm(props: Props) {
       setSubmitting(false);
     }
   }
+
+  const showTailSections = items.length >= 6 || (items.length < 6 && moreVideos === 'no');
 
   return (
     <div className="space-y-6">
@@ -289,7 +299,7 @@ export default function RequestForm(props: Props) {
                 </div>
                 {/* 各動画ごとの編集オプション */}
                 <div className="mt-2">
-                  <div className="text-sm">オプション（編集）</div>
+                  <div className="text-sm">オプション（編集） <span className="text-red-600">*</span></div>
                   <div className="mt-1 grid grid-cols-1 gap-1 text-sm">
                     {(() => {
                       const st = selectedTournament?.setType ?? 'ONE_SET';
@@ -318,98 +328,116 @@ export default function RequestForm(props: Props) {
                       ));
                     })()}
                   </div>
+                  {!items[i].editOptionId && <div className="text-xs text-red-600">編集オプションを選択してください</div>}
                 </div>
               </div>
             ))}
 
-            {/* 追加質問 */}
+            {/* 追加質問（必須） */}
             {items.length < 6 && (
               <div className="space-y-2">
-                <div className="text-sm">他にも購入する動画はありますか？</div>
+                <div className="text-sm">他にも購入する動画はありますか？ <span className="text-red-600">*</span></div>
                 <div className="flex gap-4 text-sm">
-                  <label className="flex items-center gap-2"><input type="radio" name="moreVideos" onChange={addItem} /> はい</label>
-                  <label className="flex items-center gap-2"><input type="radio" name="moreVideos" onChange={()=>{ /* いいえ → 何もしない */ }} /> いいえ</label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="moreVideos"
+                      checked={moreVideos==='yes'}
+                      onChange={() => { setMoreVideos('yes'); addItem(); }}
+                    /> はい
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="moreVideos"
+                      checked={moreVideos==='no'}
+                      onChange={() => setMoreVideos('no')}
+                    /> いいえ
+                  </label>
+                </div>
+                {errors.moreVideos && <div className="text-xs text-red-600">{errors.moreVideos}</div>}
+              </div>
+            )}
+          </div>
+
+          {showTailSections && (
+            <>
+              {/* 最後の設問群：納品・ホルダー・その他要望 */}
+              <div className="space-y-4 rounded-xl border bg-white p-4">
+                <div>
+                  <div className="text-sm font-medium">納品方法 <span className="text-red-600">*</span></div>
+                  <div className="mt-1 grid grid-cols-1 gap-1 text-sm">
+                    {deliveryMethods.length === 0 && (
+                      <div className="text-gray-500 text-sm">選択肢がありません。ページを再読み込みするか、管理者にお問い合わせください。</div>
+                    )}
+                    {deliverySorted.map(dm => {
+                      const shipping = (dm as any).shippingPrice ?? 0;
+                      const label = dm.price === 0
+                        ? `${dm.name}（無料）`
+                        : `${dm.name}（${dm.price.toLocaleString()}円${shipping>0?`＋送料${shipping.toLocaleString()}円`:''}）`;
+                      return (
+                        <label key={dm.id} className="flex items-center gap-2">
+                          <input type="radio" name="delivery" checked={deliveryMethodId===dm.id} onChange={()=>setDeliveryMethodId(dm.id)} /> {label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium">MicroSDカードホルダー <span className="text-red-600">*</span></div>
+                  <div className="mt-1 grid grid-cols-1 gap-1 text-sm">
+                    {holderOptions.length === 0 && (
+                      <div className="text-gray-500 text-sm">選択肢がありません。ページを再読み込みするか、管理者にお問い合わせください。</div>
+                    )}
+                    {holderOptions.map(ho => {
+                      const label = ho.price > 0 ? `${ho.name}（${ho.price.toLocaleString()}円）` : ho.name;
+                      return (
+                        <label key={ho.id} className="flex items-center gap-2">
+                          <input type="radio" name="holder" checked={holderOptionId===ho.id} onChange={()=>setHolderOptionId(ho.id)} /> {label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium">その他要望（自由記述）</div>
+                  <textarea placeholder="ご要望など" className="mt-1 w-full rounded border px-3 py-2" value={memo} onChange={e=>setMemo(e.target.value)} />
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* 編集オプション（グローバル）: リクエストレベル互換用に '不要' を保持 */}
-
-          {/* 最後の設問群：納品・ホルダー・その他要望 */}
-          <div className="space-y-4 rounded-xl border bg-white p-4">
-            <div>
-              <div className="text-sm font-medium">納品方法 <span className="text-red-600">*</span></div>
-              <div className="mt-1 grid grid-cols-1 gap-1 text-sm">
-                {deliveryMethods.length === 0 && (
-                  <div className="text-gray-500 text-sm">選択肢がありません。ページを再読み込みするか、管理者にお問い合わせください。</div>
+              {/* 見積り（フォーム最下部に固定表示） */}
+              <div className="rounded-xl border p-3 bg-gradient-to-b from-blue-50 to-blue-100">
+                <div className="font-semibold mb-1">見積り</div>
+                {!breakdown && <div className="text-sm text-gray-500">選択してください</div>}
+                {breakdown && (
+                  <ul className="text-sm space-y-1">
+                    <li>動画: {breakdown.video.toLocaleString()}円</li>
+                    <li>編集: {breakdown.edit.toLocaleString()}円</li>
+                    <li>納品: {breakdown.delivery.toLocaleString()}円</li>
+                    <li>送料: {breakdown.shipping.toLocaleString()}円</li>
+                    <li>ホルダー: {breakdown.holder.toLocaleString()}円</li>
+                    <li className="mt-2 text-lg font-bold">合計: {breakdown.total.toLocaleString()}円</li>
+                  </ul>
                 )}
-                {deliverySorted.map(dm => {
-                  const shipping = (dm as any).shippingPrice ?? 0;
-                  const label = dm.price === 0
-                    ? `${dm.name}（無料）`
-                    : `${dm.name}（${dm.price.toLocaleString()}円${shipping>0?`＋送料${shipping.toLocaleString()}円`:''}）`;
-                  return (
-                    <label key={dm.id} className="flex items-center gap-2">
-                      <input type="radio" name="delivery" checked={deliveryMethodId===dm.id} onChange={()=>setDeliveryMethodId(dm.id)} /> {label}
-                    </label>
-                  );
-                })}
               </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium">MicroSDカードホルダー <span className="text-red-600">*</span></div>
-              <div className="mt-1 grid grid-cols-1 gap-1 text-sm">
-                {holderOptions.length === 0 && (
-                  <div className="text-gray-500 text-sm">選択肢がありません。ページを再読み込みするか、管理者にお問い合わせください。</div>
+
+              <div>
+                <button
+                  type="button"
+                  disabled={!breakdown || !agree || submitting}
+                  onClick={onSubmit}
+                  className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+                >
+                  {submitting ? '送信中...' : '送信'}
+                </button>
+                {result && (
+                  <div className="mt-2 text-sm">
+                    受付番号: <span className="font-mono">{result.receiptNumber}</span> / 合計: {result.total.toLocaleString()}円
+                  </div>
                 )}
-                {holderOptions.map(ho => {
-                  const label = ho.price > 0 ? `${ho.name}（${ho.price.toLocaleString()}円）` : ho.name;
-                  return (
-                    <label key={ho.id} className="flex items-center gap-2">
-                      <input type="radio" name="holder" checked={holderOptionId===ho.id} onChange={()=>setHolderOptionId(ho.id)} /> {label}
-                    </label>
-                  );
-                })}
               </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium">その他要望（自由記述）</div>
-              <textarea placeholder="ご要望など" className="mt-1 w-full rounded border px-3 py-2" value={memo} onChange={e=>setMemo(e.target.value)} />
-            </div>
-          </div>
-
-          {/* 見積り（フォーム最下部に固定表示） */}
-          <div className="rounded-xl border p-3 bg-gradient-to-b from-blue-50 to-blue-100">
-            <div className="font-semibold mb-1">見積り</div>
-            {!breakdown && <div className="text-sm text-gray-500">選択してください</div>}
-            {breakdown && (
-              <ul className="text-sm space-y-1">
-                <li>動画: {breakdown.video.toLocaleString()}円</li>
-                <li>編集: {breakdown.edit.toLocaleString()}円</li>
-                <li>納品: {breakdown.delivery.toLocaleString()}円</li>
-                <li>送料: {breakdown.shipping.toLocaleString()}円</li>
-                <li>ホルダー: {breakdown.holder.toLocaleString()}円</li>
-                <li className="mt-2 text-lg font-bold">合計: {breakdown.total.toLocaleString()}円</li>
-              </ul>
-            )}
-          </div>
-
-          <div>
-            <button
-              type="button"
-              disabled={!breakdown || !agree || submitting}
-              onClick={onSubmit}
-              className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
-            >
-              {submitting ? '送信中...' : '送信'}
-            </button>
-            {result && (
-              <div className="mt-2 text-sm">
-                受付番号: <span className="font-mono">{result.receiptNumber}</span> / 合計: {result.total.toLocaleString()}円
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       )}
     </div>

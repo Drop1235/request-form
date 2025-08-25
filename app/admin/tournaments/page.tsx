@@ -19,11 +19,16 @@ async function createTournament(formData: FormData) {
   'use server';
   const name = String(formData.get('name') || '').trim();
   if (!name) return;
-  const startDate = formData.get('startDate') ? new Date(String(formData.get('startDate'))) : null;
-  const endDate = formData.get('endDate') ? new Date(String(formData.get('endDate'))) : null;
+  const startDateStr = String(formData.get('startDate') || '');
+  const endDateStr = String(formData.get('endDate') || '');
+  if (!startDateStr || !endDateStr) return; // required to satisfy Prisma non-null DateTime
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(endDateStr);
   const isActive = formData.get('isActive') === 'on';
   const customNotice = String(formData.get('customNotice') || '').trim() || null;
-  const setType = String(formData.get('setType') || 'ONE_SET') as any;
+  const setTypeStr = String(formData.get('setType') || '').trim();
+  if (!setTypeStr) return;
+  const setType = setTypeStr as any;
   const categoriesRaw = String(formData.get('categories') || '').trim();
   const categories = Array.from(new Set(
     (categoriesRaw || defaultCategories.join('\n'))
@@ -31,6 +36,7 @@ async function createTournament(formData: FormData) {
       .map(s => s.trim())
       .filter(Boolean)
   ));
+  if (categories.length === 0) return;
 
   await prisma.tournament.create({
     data: { name, startDate, endDate, isActive, customNotice, setType, categories },
@@ -65,7 +71,7 @@ export default async function AdminTournamentsPage() {
           </label>
           <label className="block">
             <div className="text-sm">セット数</div>
-            <select name="setType" className="mt-1 w-full rounded border px-3 py-2" defaultValue="ONE_SET">
+            <select name="setType" className="mt-1 w-full rounded border px-3 py-2" defaultValue="ONE_SET" required>
               <option value="ONE_SET">1セット</option>
               <option value="THREE_SET">3セット</option>
             </select>
@@ -73,11 +79,11 @@ export default async function AdminTournamentsPage() {
           <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="block">
               <div className="text-sm">開始日</div>
-              <input name="startDate" type="date" className="mt-1 w-full rounded border px-3 py-2" />
+              <input name="startDate" type="date" className="mt-1 w-full rounded border px-3 py-2" required />
             </label>
             <label className="block">
               <div className="text-sm">終了日</div>
-              <input name="endDate" type="date" className="mt-1 w-full rounded border px-3 py-2" />
+              <input name="endDate" type="date" className="mt-1 w-full rounded border px-3 py-2" required />
             </label>
           </div>
         </div>
@@ -89,6 +95,7 @@ export default async function AdminTournamentsPage() {
             className="mt-1 w-full rounded border px-3 py-2"
             defaultValue={defaultCategories.join('\n')}
             placeholder={defaultCategories.slice(0,2).join('\n')}
+            required
           />
         </label>
         <label className="block">
