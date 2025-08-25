@@ -14,9 +14,13 @@ async function createTournament(formData: FormData) {
   const priceOverride = priceOverrideRaw ? Number(priceOverrideRaw) : null;
   const customNotice = String(formData.get('customNotice') || '').trim() || null;
   const setType = String(formData.get('setType') || 'ONE_SET') as any;
+  const categoriesRaw = String(formData.get('categories') || '').trim();
+  const categories = categoriesRaw
+    ? Array.from(new Set(categoriesRaw.split(/\r?\n|,/).map(s => s.trim()).filter(Boolean)))
+    : [];
 
   await prisma.tournament.create({
-    data: { name, startDate, endDate, isActive, priceOverride, customNotice, setType },
+    data: { name, startDate, endDate, isActive, priceOverride, customNotice, setType, categories },
   });
   revalidatePath('/admin/tournaments');
 }
@@ -65,6 +69,10 @@ export default async function AdminTournamentsPage() {
           </label>
         </div>
         <label className="block">
+          <div className="text-sm">Categories (1行に1つ、またはカンマ区切り)</div>
+          <textarea name="categories" rows={3} className="mt-1 w-full rounded border px-3 py-2" placeholder="例: 12歳以下男子シングルス\n12歳以下女子シングルス" />
+        </label>
+        <label className="block">
           <div className="text-sm">Custom Notice (Markdown)</div>
           <textarea name="customNotice" rows={4} className="mt-1 w-full rounded border px-3 py-2" />
         </label>
@@ -80,6 +88,7 @@ export default async function AdminTournamentsPage() {
               <th className="p-2 text-left">Active</th>
               <th className="p-2 text-left">Dates</th>
               <th className="p-2 text-left">Override</th>
+              <th className="p-2 text-left">Categories</th>
               <th className="p-2"></th>
             </tr>
           </thead>
@@ -91,6 +100,7 @@ export default async function AdminTournamentsPage() {
                 <td className="p-2">{t.isActive ? 'Yes' : 'No'}</td>
                 <td className="p-2">{t.startDate?.toISOString().slice(0,10) || '-'} ~ {t.endDate?.toISOString().slice(0,10) || '-'}</td>
                 <td className="p-2">{t.priceOverride ?? '-'}</td>
+                <td className="p-2 max-w-[240px] truncate" title={(t as any).categories?.join(', ') || ''}>{(t as any).categories?.slice(0,3).join(', ') || '-'}</td>
                 <td className="p-2">
                   <form action={async (formData) => {
                     'use server';

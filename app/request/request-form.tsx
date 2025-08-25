@@ -14,7 +14,7 @@ type Props = {
   editOptions: EditOptionLite[];
   holderOptions: HolderOptionLite[];
   videoTiers: VideoTierLite[];
-  initialTournaments: { id: string; name: string; customNotice: string | null; priceOverride: number | null; setType?: 'ONE_SET' | 'THREE_SET' }[];
+  initialTournaments: { id: string; name: string; customNotice: string | null; priceOverride: number | null; setType?: 'ONE_SET' | 'THREE_SET'; categories?: string[] }[];
 };
 
 export default function RequestForm(props: Props) {
@@ -25,7 +25,7 @@ export default function RequestForm(props: Props) {
   const formRef = useRef<HTMLDivElement | null>(null);
 
   const [videoTierId, setVideoTierId] = useState(videoTiers[0]?.id);
-  const [editOptionId, setEditOptionId] = useState(editOptions[0]?.id);
+  const [editOptionId, setEditOptionId] = useState(editOptions.find(e=>e.name==='不要')?.id ?? editOptions[0]?.id);
   const [deliveryMethodId, setDeliveryMethodId] = useState<string | undefined>(undefined);
   const [holderOptionId, setHolderOptionId] = useState(holderOptions[0]?.id);
 
@@ -37,8 +37,8 @@ export default function RequestForm(props: Props) {
   const [phone, setPhone] = useState("");
 
   // Up to 6 items
-  type Item = { category: string; round: string; opponent: string; note?: string; otherInfo?: string };
-  const [items, setItems] = useState<Item[]>([{ category: "", round: "", opponent: "" }]);
+  type Item = { category: string; round: string; opponent: string; note?: string; otherInfo?: string; editOptionId?: string };
+  const [items, setItems] = useState<Item[]>([{ category: "", round: "", opponent: "", editOptionId: undefined }]);
   const addItem = () => {
     if (items.length < 6) setItems([...items, { category: "", round: "", opponent: "" }]);
   };
@@ -77,7 +77,7 @@ export default function RequestForm(props: Props) {
   }, [deliveryMethods]);
 
   // カテゴリの候補（仮）
-  const categoryOptions = [
+  const fallbackCategoryOptions = [
     '12歳以下男子シングルス',
     '12歳以下女子シングルス',
     '14歳以下男子シングルス',
@@ -87,6 +87,12 @@ export default function RequestForm(props: Props) {
     '18歳以下男子シングルス',
     '18歳以下女子シングルス',
   ];
+  // Move selectedTournament earlier to avoid TS lint error
+  const selectedTournament = useMemo(() => tournaments.find(t => t.id === selectedTournamentId), [tournaments, selectedTournamentId]);
+
+  const categoryOptions = selectedTournament?.categories && selectedTournament.categories.length > 0
+    ? selectedTournament.categories
+    : fallbackCategoryOptions;
 
   // items.length に合わせて videoTierId を自動同期（API互換のため）
   useEffect(() => {
@@ -105,7 +111,15 @@ export default function RequestForm(props: Props) {
     return () => clearTimeout(handler);
   }, [q]);
 
-  const selectedTournament = useMemo(() => tournaments.find(t => t.id === selectedTournamentId), [tournaments, selectedTournamentId]);
+  // selectedTournament is defined above
+
+  // default each item's edit option to '不要' when masters/tournament are ready
+  useEffect(() => {
+    const noneId = editOptions.find(e=>e.name==='不要')?.id;
+    if (!noneId) return;
+    setItems(prev => prev.map(it => ({ ...it, editOptionId: it.editOptionId ?? noneId })));
+    if (!editOptionId) setEditOptionId(noneId);
+  }, [editOptions]);
 
   // Scroll to the form section after a tournament is selected
   useEffect(() => {
@@ -117,10 +131,19 @@ export default function RequestForm(props: Props) {
   const breakdown = useMemo(() => {
     if (!selectedTournament) return null;
     const vt = videoTiers.find(v => v.id === videoTierId);
-    const ed = editOptions.find(e => e.id === editOptionId);
+    const ed = editOptions.find(e => e.id === editOptionId) || editOptions.find(e=>e.name==='不要');
     const dm = deliveryMethods.find(d => d.id === deliveryMethodId);
     const ho = holderOptions.find(h => h.id === holderOptionId);
     if (!vt || !ed || !dm || !ho) return null;
+    // per-item edit total
+    const setType = selectedTournament.setType ?? 'ONE_SET';
+    const table1: Record<string, number> = { '不要': 0, 'スコア': 3300, 'カット': 3300, '両方': 4950 };
+    const table3: Record<string, number> = { '不要': 0, 'スコア': 4400, 'カット': 4400, '両方': 5500 };
+    const priceByName = (name: string) => (setType==='ONE_SET'?table1:table3)[name] ?? 0;
+    const editTotalOverride = items.reduce((sum, it) => {
+      const eo = editOptions.find(e=>e.id===it.editOptionId);
+      return sum + (eo ? priceByName(eo.name) : 0);
+    }, 0);
     return calcQuote({
       videoTier: { id: vt.id, name: vt.name, price: vt.price },
       editOption: { id: ed.id, name: ed.name, price: ed.price },
@@ -129,8 +152,9 @@ export default function RequestForm(props: Props) {
       tournament: { id: selectedTournament.id, priceOverride: selectedTournament.priceOverride ?? undefined, setType: selectedTournament.setType },
       videoCount: items.length,
       discount: 0,
+      editTotalOverride,
     });
-  }, [selectedTournament, videoTierId, editOptionId, deliveryMethodId, holderOptionId, videoTiers, editOptions, deliveryMethods, holderOptions, items.length]);
+  }, [selectedTournament, videoTierId, editOptionId, deliveryMethodId, holderOptionId, videoTiers, editOptions, deliveryMethods, holderOptions, items.length, items, tournaments]);
 
   // Safely render custom notice (Markdown -> HTML)
   const noticeHtml = useMemo(() => {
@@ -167,7 +191,7 @@ export default function RequestForm(props: Props) {
         playerName,
         phone,
         deliveryMethodId: deliveryMethodId!,
-        editOptionId: editOptionId!,
+        editOptionId: editOptions.find(e=>e.name==='不要')?.id ?? editOptionId!,
         holderOptionId: holderOptionId!,
         videoTierId: videoTierId!,
         items,
@@ -287,8 +311,38 @@ export default function RequestForm(props: Props) {
                     <input className="mt-1 w-full rounded border px-2 py-1" value={it.opponent} onChange={e=>updateItem(i,{opponent:e.target.value})} />
                   </div>
                 </div>
-
-                {/* per-video area no edit radios, delete button removed per request */}
+                {/* 各動画ごとの編集オプション */}
+                <div className="mt-2">
+                  <div className="text-sm">オプション（編集）</div>
+                  <div className="mt-1 grid grid-cols-1 gap-1 text-sm">
+                    {(() => {
+                      const st = selectedTournament?.setType ?? 'ONE_SET';
+                      const price = (label: string) => {
+                        const p1: Record<string, number> = { '利用しない': 0, 'ポイント間カット': 3300, 'ゲームカウントを表示': 3300, '両方': 4950 };
+                        const p3: Record<string, number> = { '利用しない': 0, 'ポイント間カット': 4400, 'ゲームカウントを表示': 4400, '両方': 5500 };
+                        return (st==='ONE_SET'?p1:p3)[label] ?? 0;
+                      };
+                      const idByName = (n: '不要'|'カット'|'スコア'|'両方') => editOptions.find(e=>e.name===n)?.id;
+                      const choices: Array<{label:string,id?:string}> = [
+                        { label: '利用しない', id: idByName('不要') },
+                        { label: 'ポイント間カット', id: idByName('カット') },
+                        { label: 'ゲームカウントを表示', id: idByName('スコア') },
+                        { label: '両方', id: idByName('両方') },
+                      ];
+                      return choices.map(c => (
+                        <label key={c.label} className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`edit-${i}`}
+                            checked={it.editOptionId===c.id}
+                            onChange={()=> updateItem(i,{ editOptionId: c.id })}
+                          />
+                          {c.label}（{price(c.label).toLocaleString()}円）
+                        </label>
+                      ));
+                    })()}
+                  </div>
+                </div>
               </div>
             ))}
 
@@ -304,38 +358,7 @@ export default function RequestForm(props: Props) {
             )}
           </div>
 
-          {/* 編集オプション（動画情報の後ろに配置） */}
-          <div className="space-y-2 rounded-xl border bg-white p-4">
-            <div className="text-sm font-medium">オプション（編集）を利用しますか？ <span className="text-red-600">*</span></div>
-            <div className="mt-1 grid grid-cols-1 gap-1 text-sm">
-              {(() => {
-                const setType = selectedTournament?.setType ?? 'ONE_SET';
-                const price = (label: string) => {
-                  const p1: Record<string, number> = { '利用しない': 0, 'ポイント間カット': 3300, 'ゲームカウントを表示': 3300, '両方': 4950 };
-                  const p3: Record<string, number> = { '利用しない': 0, 'ポイント間カット': 4400, 'ゲームカウントを表示': 4400, '両方': 5500 };
-                  return (setType==='ONE_SET'?p1:p3)[label] ?? 0;
-                };
-                const mapNameToId = (n: '不要'|'カット'|'スコア'|'両方') => editOptions.find(e=>e.name===n)?.id;
-                const choices: Array<{label:string,id?:string}> = [
-                  { label: '利用しない', id: mapNameToId('不要') },
-                  { label: 'ポイント間カット', id: mapNameToId('カット') },
-                  { label: 'ゲームカウントを表示', id: mapNameToId('スコア') },
-                  { label: '両方', id: mapNameToId('両方') },
-                ];
-                return choices.map(c => (
-                  <label key={c.label} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="edit-global"
-                      checked={editOptionId===c.id}
-                      onChange={()=> c.id && setEditOptionId(c.id)}
-                    />
-                    {c.label}（{price(c.label).toLocaleString()}円）
-                  </label>
-                ));
-              })()}
-            </div>
-          </div>
+          {/* 編集オプション（グローバル）: リクエストレベル互換用に '不要' を保持 */}
 
           {/* 最後の設問群：納品・ホルダー・その他要望 */}
           <div className="space-y-4 rounded-xl border bg-white p-4">
@@ -386,11 +409,11 @@ export default function RequestForm(props: Props) {
             {!breakdown && <div className="text-sm text-gray-500">選択してください</div>}
             {breakdown && (
               <ul className="text-sm space-y-1">
-                <li>Video: {breakdown.video.toLocaleString()}円</li>
-                <li>Edit: {breakdown.edit.toLocaleString()}円</li>
-                <li>Delivery: {breakdown.delivery.toLocaleString()}円</li>
-                <li>Shipping: {breakdown.shipping.toLocaleString()}円</li>
-                <li>Holder: {breakdown.holder.toLocaleString()}円</li>
+                <li>動画: {breakdown.video.toLocaleString()}円</li>
+                <li>編集: {breakdown.edit.toLocaleString()}円</li>
+                <li>納品: {breakdown.delivery.toLocaleString()}円</li>
+                <li>送料: {breakdown.shipping.toLocaleString()}円</li>
+                <li>ホルダー: {breakdown.holder.toLocaleString()}円</li>
                 <li className="mt-2 text-lg font-bold">合計: {breakdown.total.toLocaleString()}円</li>
               </ul>
             )}

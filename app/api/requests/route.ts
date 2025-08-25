@@ -11,6 +11,7 @@ const ItemSchema = z.object({
   opponent: z.string().min(1),
   note: z.string().optional().nullable(),
   otherInfo: z.string().optional().nullable(),
+  editOptionId: z.string().uuid().optional().nullable(),
 });
 
 const RequestInputSchema = z.object({
@@ -51,6 +52,20 @@ export async function POST(req: NextRequest) {
     ]);
 
     // Server-side re-calculation
+    // Per-item edit total override
+    const itemEditIds = (input.items || []).map(i => i.editOptionId).filter(Boolean) as string[];
+    const itemEditOptions = itemEditIds.length
+      ? await prisma.editOption.findMany({ where: { id: { in: itemEditIds } } })
+      : [];
+    const setType = (tournament as any).setType ?? 'ONE_SET';
+    const priceTableOne: Record<string, number> = { '不要': 0, 'スコア': 3300, 'カット': 3300, '両方': 4950 };
+    const priceTableThree: Record<string, number> = { '不要': 0, 'スコア': 4400, 'カット': 4400, '両方': 5500 };
+    const nameToPrice = (name: string) => (setType === 'ONE_SET' ? priceTableOne : priceTableThree)[name] ?? 0;
+    const editTotalOverride = (input.items || []).reduce((sum, it) => {
+      const eo = it.editOptionId ? itemEditOptions.find(o => o.id === it.editOptionId) : undefined;
+      return sum + (eo ? nameToPrice(eo.name) : 0);
+    }, 0);
+
     const breakdown = calcQuote({
       videoTier: { id: videoTier.id, name: videoTier.name, price: videoTier.price },
       editOption: { id: editOption.id, name: editOption.name, price: editOption.price },
@@ -59,6 +74,7 @@ export async function POST(req: NextRequest) {
       tournament: { id: tournament.id, priceOverride: tournament.priceOverride ?? undefined, setType: (tournament as any).setType },
       videoCount: (input.items?.length ?? Number(videoTier.name)) || 0,
       discount: 0,
+      editTotalOverride,
     });
 
     const receiptNumber = makeReceiptNumber();
@@ -90,6 +106,7 @@ export async function POST(req: NextRequest) {
             opponent: it.opponent,
             note: it.note ?? null,
             otherInfo: it.otherInfo ?? null,
+            editOptionId: it.editOptionId ?? null,
           })),
         });
       }

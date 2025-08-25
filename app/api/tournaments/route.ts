@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
       priceOverride: true,
       customNotice: true,
       setType: true,
+      categories: true,
     },
   });
 

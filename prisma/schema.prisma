@@ -25,6 +25,7 @@ model Tournament {
   customNotice  String?
   priceOverride Int?
   setType       SetType   @default(ONE_SET)
+  categories    String[]  @default([])
   lastUsedAt    DateTime?
   useCount      Int       @default(0)
   createdAt     DateTime  @default(now())
@@ -66,6 +67,8 @@ model RequestItem {
   opponent    String
   note        String?
   otherInfo   String?
+  editOption  EditOption? @relation(fields: [editOptionId], references: [id])
+  editOptionId String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

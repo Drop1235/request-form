@@ -16,7 +16,7 @@ export default async function RequestPage() {
       where: { isActive: true },
       orderBy: [{ lastUsedAt: 'desc' }, { createdAt: 'desc' }],
       take: 20,
-      select: { id: true, name: true, customNotice: true, priceOverride: true, setType: true },
+      select: { id: true, name: true, customNotice: true, priceOverride: true, setType: true, categories: true },
     }),
   ]);
 
