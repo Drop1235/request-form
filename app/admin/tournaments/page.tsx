@@ -67,7 +67,7 @@ export default async function AdminTournamentsPage() {
           </label>
           <label className="block">
             <div className="text-sm">公開</div>
-            <input name="isActive" type="checkbox" className="mt-2" />
+            <input name="isActive" type="checkbox" className="mt-2" defaultChecked />
           </label>
           <label className="block">
             <div className="text-sm">セット数</div>
@@ -99,7 +99,7 @@ export default async function AdminTournamentsPage() {
           />
         </label>
         <label className="block">
-          <div className="text-sm">メモ</div>
+          <div className="text-sm">メモ（ユーザーには表示されません）</div>
           <textarea name="customNotice" rows={4} className="mt-1 w-full rounded border px-3 py-2" />
         </label>
         <button type="submit" className="rounded bg-blue-600 px-4 py-2 text-white">作成</button>

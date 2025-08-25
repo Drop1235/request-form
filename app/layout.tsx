@@ -7,6 +7,7 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const showAdmin = process.env.NEXT_PUBLIC_SHOW_ADMIN === '1';
   return (
     <html lang="ja">
       <body className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-gray-900">
@@ -18,7 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </a>
             <nav className="text-sm text-gray-600">
               <a className="px-3 py-1.5 rounded hover:bg-gray-100" href="/request">申込</a>
-              <a className="ml-1 px-3 py-1.5 rounded hover:bg-gray-100" href="/admin/tournaments">大会管理</a>
+              {showAdmin && (
+                <a className="ml-1 px-3 py-1.5 rounded hover:bg-gray-100" href="/admin/tournaments">大会管理</a>
+              )}
             </nav>
           </div>
         </header>
