@@ -203,6 +203,40 @@ export default function RequestForm(props: Props) {
             </div>
           )}
 
+          {/* 編集オプション（全体の設問として独立） */}
+          <div className="space-y-2 rounded-xl border bg-white p-4">
+            <div className="text-sm font-medium">オプション（編集）を利用しますか？ <span className="text-red-600">*</span></div>
+            <div className="mt-1 grid grid-cols-1 gap-1 text-sm">
+              {(() => {
+                const setType = selectedTournament?.setType ?? 'ONE_SET';
+                const price = (label: string) => {
+                  const p1: Record<string, number> = { '利用しない': 0, 'ポイント間カット': 3300, 'ゲームカウントを表示': 3300, '両方': 4950 };
+                  const p3: Record<string, number> = { '利用しない': 0, 'ポイント間カット': 4400, 'ゲームカウントを表示': 4400, '両方': 5500 };
+                  return (setType==='ONE_SET'?p1:p3)[label] ?? 0;
+                };
+                const mapNameToId = (n: '不要'|'カット'|'スコア'|'両方') => editOptions.find(e=>e.name===n)?.id;
+                const choices: Array<{label:string,id?:string}> = [
+                  { label: '利用しない', id: mapNameToId('不要') },
+                  { label: 'ポイント間カット', id: mapNameToId('カット') },
+                  { label: 'ゲームカウントを表示', id: mapNameToId('スコア') },
+                  { label: '両方', id: mapNameToId('両方') },
+                ];
+                return choices.map(c => (
+                  <label key={c.label} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="edit-global"
+                      checked={editOptionId===c.id}
+                      onChange={()=> c.id && setEditOptionId(c.id)}
+                    />
+                    {c.label}（{price(c.label).toLocaleString()}円）
+                  </label>
+                ));
+              })()}
+            </div>
+          </div>
+          
+
           {/* Options Section */}
           {/* 規約同意（先頭） */}
           <div className="space-y-2 rounded-xl border bg-white p-4">
@@ -277,32 +311,7 @@ export default function RequestForm(props: Props) {
                   </div>
                 </div>
 
-                {/* 編集オプション（ラジオ） */}
-                <div className="mt-2">
-                  <div className="text-sm">オプション：動画編集サービスを利用しますか？ <span className="text-red-600">*</span></div>
-                  <div className="mt-1 grid grid-cols-1 gap-1">
-                    {editOptions.map(opt => {
-                      const setType = selectedTournament?.setType ?? 'ONE_SET';
-                      const priceBySet = (name: string) => {
-                        const p1: Record<string, number> = { '不要': 0, 'スコア': 3300, 'カット': 3300, '両方': 4950 };
-                        const p3: Record<string, number> = { '不要': 0, 'スコア': 4400, 'カット': 4400, '両方': 5500 };
-                        return (setType==='ONE_SET'?p1:p3)[name] ?? opt.price;
-                      };
-                      const label = `${opt.name} ${priceBySet(opt.name).toLocaleString()}円`;
-                      return (
-                        <label key={opt.id} className="flex items-center gap-2 text-sm">
-                          <input type="radio" name={`edit-${i}`} checked={editOptionId===opt.id} onChange={()=>setEditOptionId(opt.id)} /> {label}
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {items.length>1 && (
-                  <div className="text-right">
-                    <button type="button" onClick={()=>removeItem(i)} className="rounded bg-red-100 px-2 text-red-700">この本を削除</button>
-                  </div>
-                )}
+                {/* per-video area no edit radios, delete button removed per request */}
               </div>
             ))}
 
@@ -323,21 +332,30 @@ export default function RequestForm(props: Props) {
             <div>
               <div className="text-sm font-medium">納品方法 <span className="text-red-600">*</span></div>
               <div className="mt-1 grid grid-cols-1 gap-1 text-sm">
-                {deliveryMethods.map(dm => (
-                  <label key={dm.id} className="flex items-center gap-2">
-                    <input type="radio" name="delivery" checked={deliveryMethodId===dm.id} onChange={()=>setDeliveryMethodId(dm.id)} /> {dm.name}
-                  </label>
-                ))}
+                {deliveryMethods.map(dm => {
+                  const shipping = (dm as any).shippingPrice ?? 0;
+                  const label = dm.price === 0
+                    ? `${dm.name}（無料）`
+                    : `${dm.name}（${dm.price.toLocaleString()}円${shipping>0?`＋送料${shipping.toLocaleString()}円`:''}）`;
+                  return (
+                    <label key={dm.id} className="flex items-center gap-2">
+                      <input type="radio" name="delivery" checked={deliveryMethodId===dm.id} onChange={()=>setDeliveryMethodId(dm.id)} /> {label}
+                    </label>
+                  );
+                })}
               </div>
             </div>
             <div>
               <div className="text-sm font-medium">MicroSDカードホルダー <span className="text-red-600">*</span></div>
               <div className="mt-1 grid grid-cols-1 gap-1 text-sm">
-                {holderOptions.map(ho => (
-                  <label key={ho.id} className="flex items-center gap-2">
-                    <input type="radio" name="holder" checked={holderOptionId===ho.id} onChange={()=>setHolderOptionId(ho.id)} /> {ho.name}
-                  </label>
-                ))}
+                {holderOptions.map(ho => {
+                  const label = ho.price > 0 ? `${ho.name}（${ho.price.toLocaleString()}円）` : ho.name;
+                  return (
+                    <label key={ho.id} className="flex items-center gap-2">
+                      <input type="radio" name="holder" checked={holderOptionId===ho.id} onChange={()=>setHolderOptionId(ho.id)} /> {label}
+                    </label>
+                  );
+                })}
               </div>
             </div>
             <div>
