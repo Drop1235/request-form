@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Tournament {
+  id            String    @id @default(uuid())
+  name          String
+  startDate     DateTime
+  endDate       DateTime
+  isActive      Boolean   @default(false)
+  note          String?
+  customNotice  String?   @db.Text
+  priceOverride Int?
+  lastUsedAt    DateTime?
+  useCount      Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  requests      Request[]
+}
+
+model Request {
+  id              String    @id @default(uuid())
+  email           String
+  customerName    String
+  playerName      String
+  phone           String
+  deliveryMethod  DeliveryMethod @relation(fields: [deliveryMethodId], references: [id])
+  deliveryMethodId String
+  editOption      EditOption @relation(fields: [editOptionId], references: [id])
+  editOptionId    String
+  holderOption    HolderOption @relation(fields: [holderOptionId], references: [id])
+  holderOptionId  String
+  videoTier       VideoTier @relation(fields: [videoTierId], references: [id])
+  videoTierId     String
+  tournament      Tournament @relation(fields: [tournamentId], references: [id])
+  tournamentId    String
+  status          RequestStatus @default(PENDING)
+  receiptNumber   String    @unique
+  note            String?   @db.Text
+  totalAmount     Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  requestItems    RequestItem[]
+}
+
+model RequestItem {
+  id          String   @id @default(uuid())
+  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  requestId   String
+  category    String
+  round       String
+  opponent    String
+  note        String?  @db.Text
+  otherInfo   String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DeliveryMethod {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  price         Int
+  shippingPrice Int      @default(0)
+  description   String?
+  requests      Request[]
+}
+
+model EditOption {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  price       Int
+  description String?
+  requests    Request[]
+}
+
+model HolderOption {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  price       Int
+  description String?
+  requests    Request[]
+}
+
+model VideoTier {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  price       Int
+  description String?
+  requests    Request[]
+}
+
+enum RequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
