@@ -208,7 +208,7 @@ export default function RequestForm(props: Props) {
           <div className="space-y-2 rounded-xl border bg-white p-4">
             <div className="text-sm">
               利用規約をご確認の上、同意いただける場合はチェックを入れてください。{' '}
-              <a className="text-blue-600 underline" href="https://sites.google.com/view/tempnachi20220723/zentori-terms_junior" target="_blank" rel="noreferrer">利用規約</a>
+              <a className="text-blue-600 underline" href="https://sites.google.com/view/tempmachi20220723/zentori-terms_junior" target="_blank" rel="noreferrer">利用規約</a>
             </div>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={agree} onChange={e=>setAgree(e.target.checked)} /> 同意します <span className="text-red-600">*</span></label>
             {errors.agree && <div className="text-xs text-red-600">{errors.agree}</div>}
