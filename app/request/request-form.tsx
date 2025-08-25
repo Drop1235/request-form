@@ -1,8 +1,6 @@
 "use client";
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { calcQuote } from '@/lib/quote';
-import sanitizeHtml from 'sanitize-html';
-import { marked } from 'marked';
 
 type DeliveryMethodLite = { id: string; name: string; price: number; shippingPrice?: number | null };
 type EditOptionLite = { id: string; name: string; price: number };
@@ -156,18 +154,7 @@ export default function RequestForm(props: Props) {
     });
   }, [selectedTournament, videoTierId, editOptionId, deliveryMethodId, holderOptionId, videoTiers, editOptions, deliveryMethods, holderOptions, items.length, items, tournaments]);
 
-  // Safely render custom notice (Markdown -> HTML)
-  const noticeHtml = useMemo(() => {
-    const md = selectedTournament?.customNotice;
-    if (!md) return '';
-    try {
-      const parsed = (marked.parse as unknown as (src: string) => string | Promise<string>)(md);
-      const html = typeof parsed === 'string' ? parsed : '';
-      return sanitizeHtml(html);
-    } catch {
-      return '';
-    }
-  }, [selectedTournament?.customNotice]);
+  // tournament memo/customNotice is intentionally not displayed on the request form
 
   async function onSubmit() {
     // simple validation
@@ -237,18 +224,7 @@ export default function RequestForm(props: Props) {
 
       {selectedTournament && (
         <div ref={formRef} className="space-y-6">
-          {/* Notice */}
-          {selectedTournament.customNotice && (
-            <div className="rounded border p-3 bg-amber-50">
-              <div className="font-semibold mb-1">大会からの注意事項</div>
-              <div
-                className="prose max-w-none text-sm"
-                dangerouslySetInnerHTML={{
-                  __html: sanitizeHtml(marked.parse(selectedTournament.customNotice) as string),
-                }}
-              />
-            </div>
-          )}
+          {/* Tournament memo/customNotice is hidden per requirement */}
 
           
 
