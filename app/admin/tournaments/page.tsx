@@ -119,7 +119,7 @@ export default async function AdminTournamentsPage() {
                 <td className="p-2">{t.startDate?.toISOString().slice(0,10) || '-'} ~ {t.endDate?.toISOString().slice(0,10) || '-'}</td>
                 <td className="p-2 max-w-[240px] truncate" title={(t as any).categories?.join(', ') || ''}>{(t as any).categories?.slice(0,3).join(', ') || '-'}</td>
                 <td className="p-2">
-                  <form action={deleteTournament} onSubmit={(e) => { if(!confirm('本当に削除しますか？')) e.preventDefault(); }}>
+                  <form action={deleteTournament}>
                     <input type="hidden" name="id" value={t.id} />
                     <button type="submit" className="rounded bg-red-600 px-3 py-1 text-white">削除</button>
                   </form>
