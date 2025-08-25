@@ -28,7 +28,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="mt-8 border-t bg-white/60">
           <div className="mx-auto max-w-6xl px-4 py-6 text-xs text-gray-600 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>© {new Date().getFullYear()} Request Form MVP</div>
-            <div className="flex-1 text-gray-500">国体優勝の実績（杉村太蔵さんとペアでの優勝）など、競技実績に裏打ちされた撮影・編集品質を提供します。</div>
             <div>
               <a
                 href="https://zentori-landing.netlify.app/"

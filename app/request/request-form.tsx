@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { calcQuote } from '@/lib/quote';
 import sanitizeHtml from 'sanitize-html';
 import { marked } from 'marked';
@@ -22,6 +22,7 @@ export default function RequestForm(props: Props) {
   const [q, setQ] = useState('');
   const [tournaments, setTournaments] = useState(initialTournaments);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | undefined>();
+  const formRef = useRef<HTMLDivElement | null>(null);
 
   const [videoTierId, setVideoTierId] = useState(videoTiers[0]?.id);
   const [editOptionId, setEditOptionId] = useState(editOptions[0]?.id);
@@ -64,12 +65,20 @@ export default function RequestForm(props: Props) {
 
   const selectedTournament = useMemo(() => tournaments.find(t => t.id === selectedTournamentId), [tournaments, selectedTournamentId]);
 
+  // Scroll to the form section after a tournament is selected
+  useEffect(() => {
+    if (selectedTournament && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedTournament]);
+
   const breakdown = useMemo(() => {
     if (!selectedTournament) return null;
-    const vt = videoTiers.find(v => v.id === videoTierId)!;
-    const ed = editOptions.find(e => e.id === editOptionId)!;
-    const dm = deliveryMethods.find(d => d.id === deliveryMethodId)!;
-    const ho = holderOptions.find(h => h.id === holderOptionId)!;
+    const vt = videoTiers.find(v => v.id === videoTierId);
+    const ed = editOptions.find(e => e.id === editOptionId);
+    const dm = deliveryMethods.find(d => d.id === deliveryMethodId);
+    const ho = holderOptions.find(h => h.id === holderOptionId);
+    if (!vt || !ed || !dm || !ho) return null;
     return calcQuote({
       videoTier: { id: vt.id, name: vt.name, price: vt.price },
       editOption: { id: ed.id, name: ed.name, price: ed.price },
@@ -79,6 +88,19 @@ export default function RequestForm(props: Props) {
       discount: 0,
     });
   }, [selectedTournament, videoTierId, editOptionId, deliveryMethodId, holderOptionId, videoTiers, editOptions, deliveryMethods, holderOptions]);
+
+  // Safely render custom notice (Markdown -> HTML)
+  const noticeHtml = useMemo(() => {
+    const md = selectedTournament?.customNotice;
+    if (!md) return '';
+    try {
+      const parsed = (marked.parse as unknown as (src: string) => string | Promise<string>)(md);
+      const html = typeof parsed === 'string' ? parsed : '';
+      return sanitizeHtml(html);
+    } catch {
+      return '';
+    }
+  }, [selectedTournament?.customNotice]);
 
   async function onSubmit() {
     // simple validation
@@ -147,7 +169,7 @@ export default function RequestForm(props: Props) {
       </div>
 
       {selectedTournament && (
-        <div className="space-y-6">
+        <div ref={formRef} className="space-y-6">
           {/* Notice */}
           {selectedTournament.customNotice && (
             <div className="rounded border p-3 bg-amber-50">
