@@ -10,6 +10,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum SetType {
+  ONE_SET
+  THREE_SET
+}
+
 model Tournament {
   id            String    @id @default(uuid())
   name          String
@@ -19,6 +24,7 @@ model Tournament {
   note          String?
   customNotice  String?
   priceOverride Int?
+  setType       SetType   @default(ONE_SET)
   lastUsedAt    DateTime?
   useCount      Int       @default(0)
   createdAt     DateTime  @default(now())

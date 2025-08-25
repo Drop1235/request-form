@@ -13,9 +13,10 @@ async function createTournament(formData: FormData) {
   const priceOverrideRaw = String(formData.get('priceOverride') || '').trim();
   const priceOverride = priceOverrideRaw ? Number(priceOverrideRaw) : null;
   const customNotice = String(formData.get('customNotice') || '').trim() || null;
+  const setType = String(formData.get('setType') || 'ONE_SET') as any;
 
   await prisma.tournament.create({
-    data: { name, startDate, endDate, isActive, priceOverride, customNotice },
+    data: { name, startDate, endDate, isActive, priceOverride, customNotice, setType },
   });
   revalidatePath('/admin/tournaments');
 }
@@ -44,6 +45,13 @@ export default async function AdminTournamentsPage() {
             <input name="isActive" type="checkbox" className="mt-2" />
           </label>
           <label className="block">
+            <div className="text-sm">Set Type</div>
+            <select name="setType" className="mt-1 w-full rounded border px-3 py-2" defaultValue="ONE_SET">
+              <option value="ONE_SET">1セット</option>
+              <option value="THREE_SET">3セット</option>
+            </select>
+          </label>
+          <label className="block">
             <div className="text-sm">Start Date</div>
             <input name="startDate" type="date" className="mt-1 w-full rounded border px-3 py-2" />
           </label>
@@ -68,6 +76,7 @@ export default async function AdminTournamentsPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="p-2 text-left">Name</th>
+              <th className="p-2 text-left">Set</th>
               <th className="p-2 text-left">Active</th>
               <th className="p-2 text-left">Dates</th>
               <th className="p-2 text-left">Override</th>
@@ -78,6 +87,7 @@ export default async function AdminTournamentsPage() {
             {tournaments.map(t => (
               <tr key={t.id} className="border-t">
                 <td className="p-2">{t.name}</td>
+                <td className="p-2">{t.setType === 'ONE_SET' ? '1セット' : '3セット'}</td>
                 <td className="p-2">{t.isActive ? 'Yes' : 'No'}</td>
                 <td className="p-2">{t.startDate?.toISOString().slice(0,10) || '-'} ~ {t.endDate?.toISOString().slice(0,10) || '-'}</td>
                 <td className="p-2">{t.priceOverride ?? '-'}</td>

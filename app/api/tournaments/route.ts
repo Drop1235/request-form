@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
       endDate: true,
       priceOverride: true,
       customNotice: true,
+      setType: true,
     },
   });
 

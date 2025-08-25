@@ -56,7 +56,8 @@ export async function POST(req: NextRequest) {
       editOption: { id: editOption.id, name: editOption.name, price: editOption.price },
       deliveryMethod: { id: deliveryMethod.id, name: deliveryMethod.name, price: deliveryMethod.price, shippingPrice: (deliveryMethod as any).shippingPrice ?? 0 },
       holderOption: { id: holderOption.id, name: holderOption.name, price: holderOption.price },
-      tournament: { id: tournament.id, priceOverride: tournament.priceOverride ?? undefined },
+      tournament: { id: tournament.id, priceOverride: tournament.priceOverride ?? undefined, setType: (tournament as any).setType },
+      videoCount: (input.items?.length ?? Number(videoTier.name)) || 0,
       discount: 0,
     });
 

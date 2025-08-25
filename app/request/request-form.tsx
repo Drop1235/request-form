@@ -14,7 +14,7 @@ type Props = {
   editOptions: EditOptionLite[];
   holderOptions: HolderOptionLite[];
   videoTiers: VideoTierLite[];
-  initialTournaments: { id: string; name: string; customNotice: string | null; priceOverride: number | null }[];
+  initialTournaments: { id: string; name: string; customNotice: string | null; priceOverride: number | null; setType?: 'ONE_SET' | 'THREE_SET' }[];
 };
 
 export default function RequestForm(props: Props) {
@@ -84,10 +84,11 @@ export default function RequestForm(props: Props) {
       editOption: { id: ed.id, name: ed.name, price: ed.price },
       deliveryMethod: { id: dm.id, name: dm.name, price: dm.price, shippingPrice: (dm as any).shippingPrice ?? 0 },
       holderOption: { id: ho.id, name: ho.name, price: ho.price },
-      tournament: { id: selectedTournament.id, priceOverride: selectedTournament.priceOverride ?? undefined },
+      tournament: { id: selectedTournament.id, priceOverride: selectedTournament.priceOverride ?? undefined, setType: selectedTournament.setType },
+      videoCount: items.length,
       discount: 0,
     });
-  }, [selectedTournament, videoTierId, editOptionId, deliveryMethodId, holderOptionId, videoTiers, editOptions, deliveryMethods, holderOptions]);
+  }, [selectedTournament, videoTierId, editOptionId, deliveryMethodId, holderOptionId, videoTiers, editOptions, deliveryMethods, holderOptions, items.length]);
 
   // Safely render custom notice (Markdown -> HTML)
   const noticeHtml = useMemo(() => {
