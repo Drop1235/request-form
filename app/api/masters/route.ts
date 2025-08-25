@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET() {
   const [deliveryMethods, editOptions, holderOptions, videoTiers] = await Promise.all([
     prisma.deliveryMethod.findMany({ orderBy: { name: 'asc' } }),
