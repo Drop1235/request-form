@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import ConfirmSubmitButton from './ConfirmSubmitButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,7 +92,7 @@ export default async function AdminTournamentsPage() {
           />
         </label>
         <label className="block">
-          <div className="text-sm">お知らせ（Markdown）</div>
+          <div className="text-sm">メモ</div>
           <textarea name="customNotice" rows={4} className="mt-1 w-full rounded border px-3 py-2" />
         </label>
         <button type="submit" className="rounded bg-blue-600 px-4 py-2 text-white">作成</button>
@@ -121,7 +122,11 @@ export default async function AdminTournamentsPage() {
                 <td className="p-2">
                   <form action={deleteTournament}>
                     <input type="hidden" name="id" value={t.id} />
-                    <button type="submit" className="rounded bg-red-600 px-3 py-1 text-white">削除</button>
+                    <ConfirmSubmitButton
+                      label="削除"
+                      confirmMessage="本当に削除してよろしいですか？"
+                      className="rounded bg-red-600 px-3 py-1 text-white"
+                    />
                   </form>
                 </td>
               </tr>
